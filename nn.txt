@@ -1,0 +1,106 @@
+# Define your PyTorch neural network
+# Number of Inputs: 31
+# Number of Hidden Units: 100
+# Number of Hidden Layers: 2
+# Activation Function:  Relu
+# Number of Outputs: 1
+
+model = pt.nn.Sequential(
+    pt.nn.Linear(31, 100),
+    pt.nn.ReLU(),
+    pt.nn.Linear(100, 100),
+    pt.nn.ReLU(),
+    pt.nn.Linear(100, 1)
+)
+
+
+# Check to see if we have a GPU to use for training
+device = 'cuda' if pt.cuda.is_available() else 'cpu'
+print('A {} device was detected.'.format(device)) 
+
+# Print the name of the cuda device, if detected
+if device=='cuda':
+  print (pt.cuda.get_device_name(device=device))
+
+# train the neural network model
+
+x_train2 = pt.tensor(X_train.values,dtype=pt.float, device=device)
+x_val2 = pt.tensor(X_value.values,dtype=pt.float, device=device)
+x_test2 = pt.tensor(X_test.values,dtype=pt.float, device=device)
+
+y_train2 = pt.tensor(y_train.values,dtype=pt.float, device=device)
+y_val2 = pt.tensor(Y_value.values,dtype=pt.float, device=device)
+y_test2 = pt.tensor(y_test.values,dtype=pt.float, device=device)
+
+print(x_train2)
+print(y_train2)
+
+#define optimizer
+optimizer = pt.optim.SGD(model.parameters(), lr=0.005, momentum=0.9)
+
+
+#define criterion
+criterion = pt.nn.MSELoss()
+
+
+def train_model(model, x, optimizer, criterion, epochs):
+      history_train = []
+      history_val = []
+      model.train()
+      for epoch in range(epochs):
+            total_loss = 0
+            for i in range(len(x)):
+                  output_train = model(x[i])
+                  loss_train = criterion(output_train, y_train2[i])
+                  total_loss += loss_train.item()
+                  optimizer.zero_grad()
+                  loss_train.backward()
+                  optimizer.step()
+
+            history_train.append(total_loss)
+
+            # calculate the validation loss
+            model.eval()
+            with pt.no_grad():
+                  val_loss = 0
+                  for i in range(len(x_val2)):
+                        output_val = model(x_val2[i])
+                        loss_val = criterion(output_val, y_val2[i])
+                        val_loss += loss_val.item()
+                  history_val.append(val_loss)
+
+            
+            print('Train Epoch: {} \tLoss: {:.6f}'.format(epoch, total_loss))
+            print('Val Epoch: {} \tLoss: {:.6f}'.format(epoch, val_loss))
+
+      
+      
+      #plot the loss and the validation loss in the same figure
+      plt.figure(figsize=(10, 6))
+      plt.plot(history_train, label='Training Loss')
+      plt.plot(history_val, label='Validation Loss')
+      plt.title("Loss")
+      plt.xlabel("Epoch")
+      plt.ylabel("Loss")
+      plt.legend()
+      plt.show()
+
+      """ # plot the loss
+      plt.figure(figsize=(10, 6))
+      plt.plot(history_train)
+      plt.title("Loss")
+      plt.xlabel("Epoch")
+      plt.ylabel("Loss")
+      plt.show()
+
+      #plot the validation loss
+      plt.figure(figsize=(10, 6))
+      plt.plot(history_val)
+      plt.title("Validation Loss")
+      plt.xlabel("Epoch")
+      plt.ylabel("Loss")
+      plt.show() """
+
+      return model
+      
+trained_model = train_model(model, x_train2, optimizer, criterion, epochs=50)
